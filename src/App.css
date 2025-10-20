@@ -1,0 +1,328 @@
+#root {
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 1rem;
+  text-align: center;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mala-counter {
+  width: 100%;
+}
+
+.container {
+  background: linear-gradient(135deg, #ffeaa7 0%, #fab1a0 30%, #e17055 70%, #d63031 100%);
+  border-radius: 25px;
+  padding: 2rem;
+  box-shadow: 0 15px 35px rgba(214, 48, 49, 0.3);
+  color: #2d3436;
+  border: 3px solid rgba(255, 234, 167, 0.8);
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+}
+
+.container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 20px,
+    rgba(255, 234, 167, 0.1) 20px,
+    rgba(255, 234, 167, 0.1) 40px
+  );
+  pointer-events: none;
+}
+
+.deity-image {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  position: relative;
+  z-index: 1;
+}
+
+.deity-img {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid #fdcb6e;
+  box-shadow: 0 10px 30px rgba(253, 203, 110, 0.4);
+  transition: transform 0.3s ease;
+}
+
+.deity-img:hover {
+  transform: scale(1.05);
+  box-shadow: 0 15px 40px rgba(253, 203, 110, 0.6);
+}
+
+.title {
+  font-size: 2.5rem;
+  margin: 0 0 0.5rem 0;
+  font-weight: 700;
+  text-shadow: 2px 2px 4px rgba(45, 52, 54, 0.4);
+  color: #2d3436;
+  position: relative;
+  z-index: 1;
+}
+
+.subtitle {
+  font-size: 1.1rem;
+  margin: 0 0 2rem 0;
+  opacity: 0.9;
+  font-weight: 500;
+  color: #636e72;
+  position: relative;
+  z-index: 1;
+}
+
+.counter-display {
+  margin: 2rem 0;
+}
+
+.count-circle {
+  width: 200px;
+  height: 200px;
+  border: 3px solid #d2b48c;
+  border-radius: 50%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle, rgba(245, 245, 220, 0.4) 0%, rgba(210, 180, 140, 0.2) 100%);
+  backdrop-filter: blur(10px);
+  position: relative;
+  transition: transform 0.2s ease;
+  box-shadow: inset 0 0 15px rgba(210, 180, 140, 0.3), 0 8px 25px rgba(139, 69, 19, 0.15);
+  z-index: 1;
+}
+
+.count-circle:hover {
+  transform: scale(1.05);
+}
+
+.count-number {
+  font-size: 3.5rem;
+  font-weight: 800;
+  line-height: 1;
+  text-shadow: 1px 1px 3px rgba(139, 69, 19, 0.3);
+  color: #8b5a2b;
+}
+
+.count-total {
+  font-size: 1.2rem;
+  opacity: 0.8;
+  margin-top: 0.2rem;
+  color: #6b4226;
+}
+
+.remaining-count {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: rgba(210, 180, 140, 0.25);
+  border-radius: 15px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(210, 180, 140, 0.4);
+  position: relative;
+  z-index: 1;
+}
+
+.remaining-label {
+  display: block;
+  font-size: 0.9rem;
+  opacity: 0.9;
+  margin-bottom: 0.3rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #6b4226;
+  font-weight: 600;
+}
+
+.remaining-number {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #cd853f;
+  text-shadow: 1px 1px 2px rgba(139, 69, 19, 0.2);
+  display: block;
+}
+
+.progress-container {
+  margin: 2rem 0;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: rgba(210, 180, 140, 0.3);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+  border: 1px solid rgba(210, 180, 140, 0.4);
+  position: relative;
+  z-index: 1;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #cd853f, #d2b48c, #ddbf8f);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+  box-shadow: 0 0 8px rgba(205, 133, 63, 0.4);
+}
+
+.progress-text {
+  font-size: 0.9rem;
+  opacity: 0.9;
+  color: #6b4226;
+  font-weight: 500;
+  position: relative;
+  z-index: 1;
+}
+
+.button-container {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin: 2rem 0;
+}
+
+.btn {
+  padding: 1rem 1.5rem;
+  border: none;
+  border-radius: 12px;
+  font-size: 1.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(139, 69, 19, 0.2);
+  min-width: 80px;
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+  border: 1px solid rgba(210, 180, 140, 0.4);
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 15px rgba(139, 69, 19, 0.25);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-increment {
+  background: linear-gradient(135deg, #90EE90, #98FB98);
+  color: #2d5016;
+  text-shadow: 0.5px 0.5px 1px rgba(45, 80, 22, 0.3);
+}
+
+.btn-decrement {
+  background: linear-gradient(135deg, #FFB6C1, #FFC0CB);
+  color: #8b3a3a;
+  text-shadow: 0.5px 0.5px 1px rgba(139, 58, 58, 0.3);
+}
+
+.btn-reset {
+  background: linear-gradient(135deg, #d2b48c, #ddbf8f);
+  color: #4a4a4a;
+  font-size: 1rem;
+  text-shadow: 0.5px 0.5px 1px rgba(74, 74, 74, 0.2);
+  font-weight: 600;
+}
+
+.completion-message {
+  margin: 2rem 0;
+  padding: 1.5rem;
+  background: rgba(205, 133, 63, 0.2);
+  border: 2px solid #cd853f;
+  border-radius: 15px;
+  animation: celebration 2s ease-in-out infinite alternate;
+  position: relative;
+  z-index: 1;
+}
+
+.completion-message p {
+  margin: 0.5rem 0;
+  font-weight: 600;
+  color: #8b5a2b;
+}
+
+.completion-message p:first-child {
+  font-size: 1.5rem;
+  color: #cd853f;
+}
+
+@keyframes celebration {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 15px rgba(205, 133, 63, 0.3);
+  }
+  100% {
+    transform: scale(1.02);
+    box-shadow: 0 0 25px rgba(205, 133, 63, 0.5);
+  }
+}
+
+.info-section {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(210, 180, 140, 0.4);
+  position: relative;
+  z-index: 1;
+}
+
+.info-text {
+  font-size: 0.9rem;
+  opacity: 0.9;
+  line-height: 1.5;
+  margin: 0;
+  color: #6b4226;
+  font-weight: 400;
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+  .container {
+    padding: 1.5rem;
+    margin: 1rem;
+  }
+
+  .title {
+    font-size: 2rem;
+  }
+
+  .count-circle {
+    width: 150px;
+    height: 150px;
+  }
+
+  .count-number {
+    font-size: 2.5rem;
+  }
+
+  .button-container {
+    flex-direction: column;
+    gap: 0.8rem;
+  }
+
+  .btn {
+    padding: 1rem;
+    font-size: 1.3rem;
+  }
+}
