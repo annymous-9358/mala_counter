@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import './App.css'
-import ghantkarmahavir from './ghantkarmahavir.jpg'
 
 function App() {
   // Initialize count from localStorage or default to 0
@@ -36,9 +35,9 @@ function App() {
     <div className="mala-counter">
       <div className="container">
         <div className="deity-image">
-          <img src={ghantkarmahavir} alt="Ghantkarna Mahavir" className="deity-img" />
+          <img src="/ghantkarmahavir.jpg" alt="Ghantkarna Mahavir" className="deity-img" />
         </div>
-        <h1 className="title">Jain Mala Counter</h1>
+        <h1 className="title">🕉️ Jain Mala Counter</h1>
         <p className="subtitle">Traditional 108 bead counter</p>
         
         <div className="counter-display">
