@@ -4,13 +4,21 @@ import './App.css'
 function App() {
   // Initialize count from localStorage or default to 0
   const [count, setCount] = useState(() => {
-    const savedCount = localStorage.getItem('jainMalaCount')
-    return savedCount ? parseInt(savedCount, 10) : 0
+    try {
+      const savedCount = localStorage.getItem('jainMalaCount')
+      return savedCount ? parseInt(savedCount, 10) : 0
+    } catch (error) {
+      return 0
+    }
   })
 
   // Save count to localStorage whenever it changes
   useEffect(() => {
-    localStorage.setItem('jainMalaCount', count.toString())
+    try {
+      localStorage.setItem('jainMalaCount', count.toString())
+    } catch (error) {
+      console.warn('Could not save to localStorage:', error)
+    }
   }, [count])
 
   const increment = () => {
