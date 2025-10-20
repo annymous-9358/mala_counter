@@ -14,12 +14,12 @@
 }
 
 .container {
-  background: linear-gradient(135deg, #ffeaa7 0%, #fab1a0 30%, #e17055 70%, #d63031 100%);
+  background: linear-gradient(135deg, #f5f5dc 0%, #f0e68c 30%, #ddbf8f 70%, #d2b48c 100%);
   border-radius: 25px;
   padding: 2rem;
-  box-shadow: 0 15px 35px rgba(214, 48, 49, 0.3);
-  color: #2d3436;
-  border: 3px solid rgba(255, 234, 167, 0.8);
+  box-shadow: 0 15px 35px rgba(139, 69, 19, 0.2);
+  color: #4a4a4a;
+  border: 2px solid rgba(210, 180, 140, 0.6);
   position: relative;
   overflow: hidden;
   backdrop-filter: blur(10px);
@@ -35,9 +35,9 @@
   background: repeating-linear-gradient(
     45deg,
     transparent,
-    transparent 20px,
-    rgba(255, 234, 167, 0.1) 20px,
-    rgba(255, 234, 167, 0.1) 40px
+    transparent 15px,
+    rgba(210, 180, 140, 0.05) 15px,
+    rgba(210, 180, 140, 0.05) 30px
   );
   pointer-events: none;
 }
@@ -54,22 +54,22 @@
   height: 120px;
   border-radius: 50%;
   object-fit: cover;
-  border: 4px solid #fdcb6e;
-  box-shadow: 0 10px 30px rgba(253, 203, 110, 0.4);
+  border: 3px solid rgba(210, 180, 140, 0.8);
+  box-shadow: 0 8px 25px rgba(139, 69, 19, 0.25);
   transition: transform 0.3s ease;
 }
 
 .deity-img:hover {
   transform: scale(1.05);
-  box-shadow: 0 15px 40px rgba(253, 203, 110, 0.6);
+  box-shadow: 0 12px 30px rgba(139, 69, 19, 0.35);
 }
 
 .title {
   font-size: 2.5rem;
   margin: 0 0 0.5rem 0;
   font-weight: 700;
-  text-shadow: 2px 2px 4px rgba(45, 52, 54, 0.4);
-  color: #2d3436;
+  text-shadow: 1px 1px 3px rgba(139, 69, 19, 0.3);
+  color: #8b5a2b;
   position: relative;
   z-index: 1;
 }
@@ -77,9 +77,9 @@
 .subtitle {
   font-size: 1.1rem;
   margin: 0 0 2rem 0;
-  opacity: 0.9;
-  font-weight: 500;
-  color: #636e72;
+  opacity: 0.85;
+  font-weight: 400;
+  color: #6b4226;
   position: relative;
   z-index: 1;
 }

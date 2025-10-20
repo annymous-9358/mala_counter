@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import './App.css'
-// Import the image
 import ghantkarmahavir from './ghantkarmahavir.jpg'
 
 function App() {
