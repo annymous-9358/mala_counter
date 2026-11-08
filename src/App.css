@@ -326,3 +326,57 @@
     font-size: 1.3rem;
   }
 }
+
+/* Timer */
+.timer-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin: 1.5rem 0 0;
+  padding: 0.75rem 1rem;
+  background: rgba(210, 180, 140, 0.25);
+  border-radius: 15px;
+  border: 1px solid rgba(210, 180, 140, 0.4);
+  position: relative;
+  z-index: 1;
+  flex-wrap: wrap;
+}
+
+.timer-label {
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #6b4226;
+  font-weight: 600;
+}
+
+.timer-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #8b5a2b;
+  font-variant-numeric: tabular-nums;
+  min-width: 5ch;
+}
+
+.btn-timer {
+  padding: 0.4rem 0.9rem;
+  border-radius: 10px;
+  border: 1px solid rgba(210, 180, 140, 0.6);
+  background: linear-gradient(135deg, #ddbf8f, #f0e68c);
+  color: #4a4a4a;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(139, 69, 19, 0.15);
+}
+
+.btn-timer:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.btn-timer:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
