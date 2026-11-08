@@ -380,3 +380,100 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* Bell auto-count */
+.bell-section {
+  margin: 1.5rem 0 0;
+  padding: 1rem;
+  background: rgba(210, 180, 140, 0.2);
+  border-radius: 15px;
+  border: 1px solid rgba(210, 180, 140, 0.4);
+  position: relative;
+  z-index: 1;
+}
+
+.bell-section.is-listening {
+  border-color: #cd853f;
+  box-shadow: 0 0 12px rgba(205, 133, 63, 0.3);
+}
+
+.btn-bell {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(210, 180, 140, 0.6);
+  background: linear-gradient(135deg, #f0e68c, #ddbf8f);
+  color: #6b4226;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 3px 10px rgba(139, 69, 19, 0.15);
+}
+
+.is-listening .btn-bell {
+  background: linear-gradient(135deg, #cd853f, #ddbf8f);
+  color: #fff;
+}
+
+.btn-bell.flash {
+  animation: bell-flash 0.6s ease;
+}
+
+.btn-bell:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@keyframes bell-flash {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.04); box-shadow: 0 0 20px rgba(205, 133, 63, 0.7); }
+  100% { transform: scale(1); }
+}
+
+.bell-meter {
+  height: 6px;
+  margin-top: 0.75rem;
+  background: rgba(210, 180, 140, 0.3);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.bell-meter-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #90ee90, #cd853f);
+  transition: width 0.1s linear;
+}
+
+.bell-hint {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+  color: #6b4226;
+}
+
+.bell-error {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+  color: #8b3a3a;
+  font-weight: 600;
+}
+
+.bell-settings {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  text-align: left;
+}
+
+.bell-settings label {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.8rem;
+  color: #6b4226;
+  font-weight: 600;
+}
+
+.bell-settings input[type='range'] {
+  width: 100%;
+  accent-color: #cd853f;
+}

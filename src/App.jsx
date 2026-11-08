@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import './App.css'
+import { useBellDetector } from './useBellDetector'
 
 function App() {
   // Initialize count from localStorage or default to 0
@@ -98,6 +99,48 @@ function App() {
     }
   }
 
+  // Bell (danka) detection settings
+  const [bellSettings, setBellSettings] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('jainMalaBellSettings'))
+      if (saved && typeof saved.sensitivity === 'number' && typeof saved.cooldownMs === 'number') {
+        return saved
+      }
+    } catch {
+      // ignore and fall through to default
+    }
+    return { sensitivity: 5, cooldownMs: 1500 }
+  })
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('jainMalaBellSettings', JSON.stringify(bellSettings))
+    } catch {
+      // ignore
+    }
+  }, [bellSettings])
+
+  const bell = useBellDetector({
+    onBell: increment,
+    sensitivity: bellSettings.sensitivity,
+    cooldownMs: bellSettings.cooldownMs,
+  })
+  const { listening: bellListening, stop: stopBell } = bell
+
+  // Stop listening once the mala is complete
+  useEffect(() => {
+    if (count === 108 && bellListening) stopBell()
+  }, [count, bellListening, stopBell])
+
+  // Briefly flash the indicator each time a bell is detected
+  const [bellFlash, setBellFlash] = useState(false)
+  useEffect(() => {
+    if (!bell.lastDetectedAt) return
+    setBellFlash(true)
+    const id = setTimeout(() => setBellFlash(false), 600)
+    return () => clearTimeout(id)
+  }, [bell.lastDetectedAt])
+
   const decrement = () => {
     if (count > 0) {
       setCount(prev => prev - 1)
@@ -142,6 +185,59 @@ function App() {
           >
             {isRunning ? 'Pause' : elapsedMs > 0 ? 'Resume' : 'Start'}
           </button>
+        </div>
+
+        <div className={`bell-section ${bellListening ? 'is-listening' : ''}`}>
+          <button
+            className={`btn-bell ${bellFlash ? 'flash' : ''}`}
+            onClick={bellListening ? bell.stop : bell.start}
+            disabled={!bellListening && count === 108}
+            aria-pressed={bellListening}
+          >
+            {bellListening ? '🔔 Listening… tap to stop' : '🔔 Auto-count with bell'}
+          </button>
+
+          {bellListening && (
+            <>
+              <div className="bell-meter" aria-hidden="true">
+                <div className="bell-meter-fill" style={{ width: `${bell.level * 100}%` }}></div>
+              </div>
+              <p className="bell-hint">
+                {bellFlash ? 'Bell detected +1' : 'Ring the bell (danka) — each ring adds 1'}
+              </p>
+            </>
+          )}
+
+          {bell.error && <p className="bell-error">{bell.error}</p>}
+
+          <div className="bell-settings">
+            <label>
+              <span>Sensitivity: {bellSettings.sensitivity}</span>
+              <input
+                type="range"
+                min="1"
+                max="10"
+                step="1"
+                value={bellSettings.sensitivity}
+                onChange={e =>
+                  setBellSettings(prev => ({ ...prev, sensitivity: Number(e.target.value) }))
+                }
+              />
+            </label>
+            <label>
+              <span>Gap between rings: {(bellSettings.cooldownMs / 1000).toFixed(1)}s</span>
+              <input
+                type="range"
+                min="300"
+                max="4000"
+                step="100"
+                value={bellSettings.cooldownMs}
+                onChange={e =>
+                  setBellSettings(prev => ({ ...prev, cooldownMs: Number(e.target.value) }))
+                }
+              />
+            </label>
+          </div>
         </div>
 
         <div className="progress-container">
@@ -194,6 +290,7 @@ function App() {
           <p className="info-text">
             A traditional Jain mala consists of 108 beads. 
             The timer starts with your first count and stops at 108.
+            Turn on bell auto-count to add 1 for every bell ring (needs microphone).
             Your progress is automatically saved.
           </p>
         </div>
