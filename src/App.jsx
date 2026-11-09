@@ -1,300 +1,380 @@
-import { useState, useEffect } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
+import {
+  BUILTIN_IMAGES,
+  BUILTIN_MANTRAS,
+  DEFAULT_SETTINGS,
+  elapsedOf,
+  flushPending,
+  load,
+  migrateLegacy,
+  newId,
+  pullRemote,
+  queue,
+  resizeImage,
+  save,
+  syncEnabled,
+} from './lib/store'
 import { useBellDetector } from './useBellDetector'
+import Counter from './screens/Counter'
+import Setup from './screens/Setup'
+import History from './screens/History'
+import Mantras from './screens/Mantras'
+import BellTraining from './screens/BellTraining'
+
+migrateLegacy()
+
+const EMPTY_CURRENT = { count: 0, malaNo: 1, timer: { elapsed: 0, startedAt: null }, startedAt: null }
+
+function usePersisted(key, fallback) {
+  const [value, setValue] = useState(() => load(key, fallback))
+  useEffect(() => {
+    save(key, value)
+  }, [key, value])
+  return [value, setValue]
+}
+
+function vibrate(pattern) {
+  try {
+    navigator.vibrate?.(pattern)
+  } catch {
+    // not supported
+  }
+}
 
 function App() {
-  // Initialize count from localStorage or default to 0
-  const [count, setCount] = useState(() => {
-    try {
-      const savedCount = localStorage.getItem('jainMalaCount')
-      return savedCount ? parseInt(savedCount, 10) : 0
-    } catch {
-      return 0
-    }
-  })
+  const [screen, setScreen] = useState('counter')
+  const [settings, setSettings] = usePersisted('settings', DEFAULT_SETTINGS)
+  const [userMantras, setUserMantras] = usePersisted('mantras', [])
+  const [userImages, setUserImages] = usePersisted('images', [])
+  const [sessions, setSessions] = usePersisted('sessions', [])
+  const [current, setCurrent] = usePersisted('current', EMPTY_CURRENT)
+  const [completed, setCompleted] = useState(null) // session just finished (non-repeat mode)
+  const [toast, setToast] = useState(null)
+  const [syncStatus, setSyncStatus] = useState(syncEnabled ? 'syncing' : 'off')
 
-  // Save count to localStorage whenever it changes
+  const cfg = { ...DEFAULT_SETTINGS, ...settings, bell: { ...DEFAULT_SETTINGS.bell, ...settings.bell } }
+  const mantras = useMemo(() => [...BUILTIN_MANTRAS, ...userMantras], [userMantras])
+  const images = useMemo(() => [...BUILTIN_IMAGES, ...userImages], [userImages])
+  const mantra = mantras.find(m => m.id === cfg.mantraId) || mantras[0]
+  const image = cfg.imageId ? images.find(i => i.id === cfg.imageId) || null : null
+
+  const updateSettings = useCallback(patch => setSettings(s => ({ ...s, ...patch })), [setSettings])
+  const updateBell = useCallback(
+    patch => setSettings(s => ({ ...s, bell: { ...DEFAULT_SETTINGS.bell, ...s.bell, ...patch } })),
+    [setSettings]
+  )
+
+  const showToast = useCallback(text => {
+    setToast({ text, at: Date.now() })
+  }, [])
   useEffect(() => {
-    try {
-      localStorage.setItem('jainMalaCount', count.toString())
-    } catch (error) {
-      console.warn('Could not save to localStorage:', error)
-    }
-  }, [count])
-
-  // Timer state: accumulated elapsed ms plus the start timestamp while running
-  const [timer, setTimer] = useState(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem('jainMalaTimer'))
-      if (saved && typeof saved.elapsed === 'number') {
-        return { elapsed: saved.elapsed, startedAt: saved.startedAt ?? null }
-      }
-    } catch {
-      // ignore and fall through to default
-    }
-    return { elapsed: 0, startedAt: null }
-  })
-  const [now, setNow] = useState(() => Date.now())
-  const isRunning = timer.startedAt !== null
-
-  // Persist timer state
-  useEffect(() => {
-    try {
-      localStorage.setItem('jainMalaTimer', JSON.stringify(timer))
-    } catch (error) {
-      console.warn('Could not save timer to localStorage:', error)
-    }
-  }, [timer])
-
-  // Tick every second while running
-  useEffect(() => {
-    if (!isRunning) return
-    setNow(Date.now())
-    const id = setInterval(() => setNow(Date.now()), 1000)
-    return () => clearInterval(id)
-  }, [isRunning])
-
-  const elapsedMs = timer.elapsed + (isRunning ? Math.max(0, now - timer.startedAt) : 0)
-
-  const startTimer = () => {
-    setTimer(t => (t.startedAt !== null ? t : { ...t, startedAt: Date.now() }))
-  }
-
-  const stopTimer = () => {
-    setTimer(t =>
-      t.startedAt === null
-        ? t
-        : { elapsed: t.elapsed + Math.max(0, Date.now() - t.startedAt), startedAt: null }
-    )
-  }
-
-  const toggleTimer = () => {
-    if (isRunning) {
-      stopTimer()
-    } else {
-      startTimer()
-    }
-  }
-
-  const formatTime = ms => {
-    const totalSeconds = Math.floor(ms / 1000)
-    const hours = Math.floor(totalSeconds / 3600)
-    const minutes = Math.floor((totalSeconds % 3600) / 60)
-    const seconds = totalSeconds % 60
-    const pad = n => n.toString().padStart(2, '0')
-    return hours > 0
-      ? `${hours}:${pad(minutes)}:${pad(seconds)}`
-      : `${pad(minutes)}:${pad(seconds)}`
-  }
-
-  const increment = () => {
-    if (count < 108) {
-      const next = count + 1
-      setCount(next)
-      if (next === 108) {
-        stopTimer()
-      } else {
-        startTimer()
-      }
-    }
-  }
-
-  // Bell (danka) detection settings
-  const [bellSettings, setBellSettings] = useState(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem('jainMalaBellSettings'))
-      if (saved && typeof saved.sensitivity === 'number' && typeof saved.cooldownMs === 'number') {
-        return saved
-      }
-    } catch {
-      // ignore and fall through to default
-    }
-    return { sensitivity: 5, cooldownMs: 1500 }
-  })
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('jainMalaBellSettings', JSON.stringify(bellSettings))
-    } catch {
-      // ignore
-    }
-  }, [bellSettings])
-
-  const bell = useBellDetector({
-    onBell: increment,
-    sensitivity: bellSettings.sensitivity,
-    cooldownMs: bellSettings.cooldownMs,
-  })
-  const { listening: bellListening, stop: stopBell } = bell
-
-  // Stop listening once the mala is complete
-  useEffect(() => {
-    if (count === 108 && bellListening) stopBell()
-  }, [count, bellListening, stopBell])
-
-  // Briefly flash the indicator each time a bell is detected
-  const [bellFlash, setBellFlash] = useState(false)
-  useEffect(() => {
-    if (!bell.lastDetectedAt) return
-    setBellFlash(true)
-    const id = setTimeout(() => setBellFlash(false), 600)
+    if (!toast) return
+    const id = setTimeout(() => setToast(null), 2600)
     return () => clearTimeout(id)
-  }, [bell.lastDetectedAt])
+  }, [toast])
 
-  const decrement = () => {
-    if (count > 0) {
-      setCount(prev => prev - 1)
+  // ---- Sync with Supabase ------------------------------------------------
+  const sync = useCallback(async () => {
+    if (!syncEnabled) return
+    if (!navigator.onLine) {
+      setSyncStatus('offline')
+      return
     }
-  }
+    setSyncStatus('syncing')
+    try {
+      await flushPending()
+      const remote = await pullRemote()
+      if (remote) {
+        setSessions(local => {
+          const byId = new Map(local.map(s => [s.id, s]))
+          remote.sessions.forEach(s => byId.has(s.id) || byId.set(s.id, s))
+          return [...byId.values()].sort((a, b) => b.endedAt - a.endedAt)
+        })
+        setUserMantras(local => {
+          const byId = new Map(local.map(m => [m.id, m]))
+          remote.mantras.forEach(m => byId.has(m.id) || byId.set(m.id, m))
+          return [...byId.values()]
+        })
+        setUserImages(local => {
+          const byId = new Map(local.map(i => [i.id, i]))
+          remote.images.forEach(i => byId.has(i.id) || byId.set(i.id, i))
+          return [...byId.values()]
+        })
+      }
+      setSyncStatus('synced')
+    } catch (err) {
+      console.warn('Sync failed', err)
+      setSyncStatus('error')
+    }
+  }, [setSessions, setUserMantras, setUserImages])
 
-  const reset = () => {
-    setCount(0)
-    setTimer({ elapsed: 0, startedAt: null })
-  }
+  useEffect(() => {
+    sync()
+    window.addEventListener('online', sync)
+    return () => window.removeEventListener('online', sync)
+  }, [sync])
 
-  const progress = (count / 108) * 100
+  const pushChange = useCallback(
+    op => {
+      queue(op)
+      if (!syncEnabled || !navigator.onLine) {
+        if (syncEnabled) setSyncStatus('offline')
+        return
+      }
+      setSyncStatus('syncing')
+      flushPending()
+        .then(() => setSyncStatus('synced'))
+        .catch(err => {
+          console.warn('Sync failed', err)
+          setSyncStatus('error')
+        })
+    },
+    []
+  )
+
+  // ---- Counting -----------------------------------------------------------
+  const currentRef = useRef(current)
+  useEffect(() => {
+    currentRef.current = current
+  }, [current])
+
+  const recordSession = useCallback(
+    (cur, endedAt = Date.now()) => {
+      const session = {
+        id: newId(),
+        mantraId: mantra.id,
+        mantraName: mantra.name,
+        imageId: image?.id ?? null,
+        target: cfg.target,
+        count: cur.count,
+        durationMs: elapsedOf(cur.timer, endedAt),
+        mode: cfg.mode,
+        startedAt: cur.startedAt ?? endedAt,
+        endedAt,
+      }
+      setSessions(list => [session, ...list])
+      pushChange({ type: 'session', data: session })
+      return session
+    },
+    [mantra, image, cfg.target, cfg.mode, setSessions, pushChange]
+  )
+
+  const increment = useCallback(() => {
+    const cur = currentRef.current
+    const target = cfg.target
+    if (completed) return
+    if (target && cur.count >= target) return
+    const now = Date.now()
+    const count = cur.count + 1
+    let next = {
+      ...cur,
+      count,
+      startedAt: cur.startedAt ?? now,
+      timer: cur.timer.startedAt ? cur.timer : { ...cur.timer, startedAt: now },
+    }
+    if (target && count >= target) {
+      const done = recordSession(next, now)
+      vibrate([60, 80, 60, 80, 160])
+      if (cfg.repeat) {
+        next = { ...EMPTY_CURRENT, malaNo: cur.malaNo + 1 }
+        showToast(`Mala complete · ${count} saved`)
+      } else {
+        next = { ...next, timer: { elapsed: elapsedOf(next.timer, now), startedAt: null } }
+        setCompleted(done)
+      }
+    } else {
+      vibrate(12)
+    }
+    currentRef.current = next
+    setCurrent(next)
+  }, [cfg.target, cfg.repeat, completed, recordSession, setCurrent, showToast])
+
+  const undo = useCallback(() => {
+    setCurrent(cur => ({ ...cur, count: Math.max(0, cur.count - 1) }))
+  }, [setCurrent])
+
+  const toggleTimer = useCallback(() => {
+    setCurrent(cur => {
+      const t = cur.timer
+      return t.startedAt
+        ? { ...cur, timer: { elapsed: elapsedOf(t), startedAt: null } }
+        : { ...cur, timer: { ...t, startedAt: Date.now() }, startedAt: cur.startedAt ?? Date.now() }
+    })
+  }, [setCurrent])
+
+  const reset = useCallback(() => {
+    setCompleted(null)
+    setCurrent(cur => ({ ...EMPTY_CURRENT, malaNo: cur.malaNo }))
+  }, [setCurrent])
+
+  const saveNow = useCallback(() => {
+    const cur = currentRef.current
+    if (cur.count === 0) return
+    recordSession(cur)
+    setCurrent({ ...EMPTY_CURRENT, malaNo: cur.malaNo + 1 })
+    showToast('Saved to history')
+  }, [recordSession, setCurrent, showToast])
+
+  const startNext = useCallback(() => {
+    setCompleted(null)
+    setCurrent(cur => ({ ...EMPTY_CURRENT, malaNo: cur.malaNo + 1 }))
+  }, [setCurrent])
+
+  const startNewJaap = useCallback(() => {
+    setCompleted(null)
+    setCurrent(cur => (cur.count > 0 ? cur : { ...EMPTY_CURRENT }))
+    setScreen('counter')
+  }, [setCurrent])
+
+  // ---- Bell ---------------------------------------------------------------
+  const bellUsed = cfg.mode === 'bell' || cfg.mode === 'both'
+  const trainingSink = useRef(null)
+  const bell = useBellDetector({
+    template: cfg.bell.template,
+    strictness: cfg.bell.strictness,
+    cooldownMs: cfg.bell.cooldownMs,
+    sensitivity: cfg.bell.sensitivity,
+    onBell: () => {
+      if (screen === 'counter') increment()
+    },
+    onSample: fp => trainingSink.current?.(fp),
+  })
+  const { listening: bellListening, stop: stopBell, start: startBell } = bell
+
+  // Stop listening when leaving bell mode, and when a non-repeating jaap is done
+  useEffect(() => {
+    if (bellListening === 'detect' && (!bellUsed || completed)) stopBell()
+  }, [bellListening, bellUsed, completed, stopBell])
+
+  // ---- Mantras & images ----------------------------------------------------
+  const saveMantra = useCallback(
+    m => {
+      const data = { id: m.id || newId(), name: m.name.trim(), text: m.text, goal: m.goal ?? null }
+      setUserMantras(list => {
+        const exists = list.some(x => x.id === data.id)
+        return exists ? list.map(x => (x.id === data.id ? data : x)) : [...list, data]
+      })
+      pushChange({ type: 'mantra', data })
+      return data
+    },
+    [setUserMantras, pushChange]
+  )
+
+  const deleteMantra = useCallback(
+    id => {
+      setUserMantras(list => list.filter(m => m.id !== id))
+      if (cfg.mantraId === id) updateSettings({ mantraId: BUILTIN_MANTRAS[0].id })
+      pushChange({ type: 'mantraDelete', id })
+    },
+    [setUserMantras, cfg.mantraId, updateSettings, pushChange]
+  )
+
+  const addImage = useCallback(
+    async file => {
+      const url = await resizeImage(file)
+      const img = { id: newId(), url }
+      const ok = save('images', [...userImages, img])
+      if (!ok) throw new Error('Not enough space on this device for another image. Delete one first.')
+      setUserImages(list => [...list, img])
+      updateSettings({ imageId: img.id })
+      pushChange({ type: 'image', id: img.id })
+      return img
+    },
+    [userImages, setUserImages, updateSettings, pushChange]
+  )
+
+  const deleteImage = useCallback(
+    id => {
+      setUserImages(list => list.filter(i => i.id !== id))
+      if (cfg.imageId === id) updateSettings({ imageId: null })
+      pushChange({ type: 'imageDelete', id })
+    },
+    [setUserImages, cfg.imageId, updateSettings, pushChange]
+  )
+
+  const deleteSession = useCallback(
+    id => {
+      setSessions(list => list.filter(s => s.id !== id))
+      pushChange({ type: 'sessionDelete', id })
+    },
+    [setSessions, pushChange]
+  )
+
+  const go = useCallback(
+    name => {
+      if (bellListening === 'train' && name !== 'bell') stopBell()
+      setScreen(name)
+      window.scrollTo(0, 0)
+    },
+    [bellListening, stopBell]
+  )
+
+  const common = { go, syncStatus }
 
   return (
-    <div className="mala-counter">
-      <div className="container">
-        <div className="deity-image">
-          <img src="/ghantkarmahavir.jpg" alt="Ghantkarna Mahavir" className="deity-img" />
+    <div className="app">
+      {screen === 'counter' && (
+        <Counter
+          {...common}
+          current={current}
+          settings={cfg}
+          mantra={mantra}
+          image={image}
+          sessions={sessions}
+          completed={completed}
+          onTap={increment}
+          onUndo={undo}
+          onReset={reset}
+          onSave={saveNow}
+          onStartNext={startNext}
+          onToggleTimer={toggleTimer}
+          onModeChange={mode => updateSettings({ mode })}
+          bell={bell}
+          onStartBell={() => startBell('detect')}
+        />
+      )}
+      {screen === 'setup' && (
+        <Setup
+          {...common}
+          settings={cfg}
+          mantra={mantra}
+          image={image}
+          current={current}
+          onChange={updateSettings}
+          onStart={startNewJaap}
+        />
+      )}
+      {screen === 'history' && (
+        <History {...common} sessions={sessions} images={images} onDelete={deleteSession} />
+      )}
+      {screen === 'mantras' && (
+        <Mantras
+          {...common}
+          settings={cfg}
+          mantras={mantras}
+          images={images}
+          onChange={updateSettings}
+          onSaveMantra={saveMantra}
+          onDeleteMantra={deleteMantra}
+          onAddImage={addImage}
+          onDeleteImage={deleteImage}
+        />
+      )}
+      {screen === 'bell' && (
+        <BellTraining
+          {...common}
+          settings={cfg.bell}
+          onChange={updateBell}
+          bell={bell}
+          sinkRef={trainingSink}
+        />
+      )}
+      {toast && (
+        <div className="toast" role="status" key={toast.at}>
+          {toast.text}
         </div>
-        <h1 className="title">🕉️ Jain Mala Counter</h1>
-        <p className="subtitle">Traditional 108 bead counter</p>
-        
-        <div className="counter-display">
-          <div className="count-circle">
-            <span className="count-number">{count}</span>
-            <span className="count-total">/ 108</span>
-          </div>
-          <div className="remaining-count">
-            <span className="remaining-label">Remaining:</span>
-            <span className="remaining-number">{108 - count}</span>
-          </div>
-        </div>
-
-        <div className="timer-display">
-          <span className="timer-label">⏱️ Time</span>
-          <span className="timer-value">{formatTime(elapsedMs)}</span>
-          <button
-            className="btn-timer"
-            onClick={toggleTimer}
-            disabled={count === 108}
-            aria-label={isRunning ? 'Pause timer' : 'Start timer'}
-          >
-            {isRunning ? 'Pause' : elapsedMs > 0 ? 'Resume' : 'Start'}
-          </button>
-        </div>
-
-        <div className={`bell-section ${bellListening ? 'is-listening' : ''}`}>
-          <button
-            className={`btn-bell ${bellFlash ? 'flash' : ''}`}
-            onClick={bellListening ? bell.stop : bell.start}
-            disabled={!bellListening && count === 108}
-            aria-pressed={bellListening}
-          >
-            {bellListening ? '🔔 Listening… tap to stop' : '🔔 Auto-count with bell'}
-          </button>
-
-          {bellListening && (
-            <>
-              <div className="bell-meter" aria-hidden="true">
-                <div className="bell-meter-fill" style={{ width: `${bell.level * 100}%` }}></div>
-              </div>
-              <p className="bell-hint">
-                {bellFlash ? 'Bell detected +1' : 'Ring the bell (danka) — each ring adds 1'}
-              </p>
-            </>
-          )}
-
-          {bell.error && <p className="bell-error">{bell.error}</p>}
-
-          <div className="bell-settings">
-            <label>
-              <span>Sensitivity: {bellSettings.sensitivity}</span>
-              <input
-                type="range"
-                min="1"
-                max="10"
-                step="1"
-                value={bellSettings.sensitivity}
-                onChange={e =>
-                  setBellSettings(prev => ({ ...prev, sensitivity: Number(e.target.value) }))
-                }
-              />
-            </label>
-            <label>
-              <span>Gap between rings: {(bellSettings.cooldownMs / 1000).toFixed(1)}s</span>
-              <input
-                type="range"
-                min="300"
-                max="4000"
-                step="100"
-                value={bellSettings.cooldownMs}
-                onChange={e =>
-                  setBellSettings(prev => ({ ...prev, cooldownMs: Number(e.target.value) }))
-                }
-              />
-            </label>
-          </div>
-        </div>
-
-        <div className="progress-container">
-          <div className="progress-bar">
-            <div 
-              className="progress-fill" 
-              style={{ width: `${progress}%` }}
-            ></div>
-          </div>
-          <span className="progress-text">{Math.round(progress)}% Complete</span>
-        </div>
-
-        <div className="button-container">
-          <button 
-            className="btn btn-decrement" 
-            onClick={decrement}
-            disabled={count === 0}
-            aria-label="Decrease count"
-          >
-            −
-          </button>
-          
-          <button 
-            className="btn btn-reset" 
-            onClick={reset}
-            aria-label="Reset count"
-          >
-            Reset
-          </button>
-          
-          <button 
-            className="btn btn-increment" 
-            onClick={increment}
-            disabled={count === 108}
-            aria-label="Increase count"
-          >
-            +
-          </button>
-        </div>
-
-        {count === 108 && (
-          <div className="completion-message">
-            <p>🎉 Mala Complete! 🎉</p>
-            <p>You have completed 108 repetitions</p>
-            <p>Time taken: {formatTime(elapsedMs)}</p>
-          </div>
-        )}
-
-        <div className="info-section">
-          <p className="info-text">
-            A traditional Jain mala consists of 108 beads. 
-            The timer starts with your first count and stops at 108.
-            Turn on bell auto-count to add 1 for every bell ring (needs microphone).
-            Your progress is automatically saved.
-          </p>
-        </div>
-      </div>
+      )}
     </div>
   )
 }
