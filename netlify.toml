@@ -6,3 +6,8 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+# Supabase (publishable key is safe to expose in the browser; data is protected by row level security)
+[build.environment]
+  VITE_SUPABASE_URL = "https://odrniucnyzygtaodvwmw.supabase.co"
+  VITE_SUPABASE_ANON_KEY = "sb_publishable_yfFhjj0GIESgBAYCVmBd2Q_Xhxkl1Up"
